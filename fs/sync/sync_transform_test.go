@@ -26,6 +26,27 @@ import (
 
 var debug = ``
 
+func TestMoveDirWithNameTransformToNewDestination(t *testing.T) {
+	ctx, _ := fs.AddConfig(context.Background())
+	r := fstest.NewRun(t)
+	defer r.Finalise()
+	r.WriteFile("src/a.txt", "hello", t1)
+	r.WriteFile("src/sub/b.txt", "world", t2)
+
+	src, err := fs.NewFs(ctx, path.Join(r.Flocal.Root(), "src"))
+	require.NoError(t, err)
+	dst, err := fs.NewFs(ctx, path.Join(r.Flocal.Root(), "dst"))
+	require.NoError(t, err)
+	require.NotNil(t, dst.Features().DirMove)
+	require.NoError(t, transform.SetOptions(ctx, "prefix=new-"))
+
+	require.NoError(t, MoveDir(ctx, dst, src, true, false))
+	r.CheckLocalItems(t,
+		fstest.NewItem("dst/new-a.txt", "hello", t1),
+		fstest.NewItem("dst/sub/new-b.txt", "world", t2),
+	)
+}
+
 // newTransformRun resets the global error stats, which Sync consults
 // before deleting files, so that an error left over from an earlier
 // test in this binary doesn't disable deletions in this one, then
